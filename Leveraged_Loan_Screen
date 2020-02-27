@@ -1,6 +1,6 @@
 #Weekly Loan Screen from Advantage Data
 #By Ian Peterkin
-#2.21.19
+#Last Updated: 2.20.20
 
 #First load the csv Data and packages needed
 library(tidyverse)
