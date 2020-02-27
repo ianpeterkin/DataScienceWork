@@ -1,0 +1,48 @@
+#Weekly Loan Screen from Advantage Data
+#By Ian Peterkin
+#2.21.19
+
+#First load the csv Data and packages needed
+library(tidyverse)
+library(xlsx)
+library(janitor)
+
+#Import the dataset
+screen <- read.xlsx("input/ADI-AdvancedSearch.xlsx", 1, stringsAsFactors=FALSE) %>% clean_names()
+names(screen) <- gsub("â","", names(screen))
+names(screen) <- gsub(" ","", names(screen))
+
+#Change names
+screen <- screen %>% rename("issue" = `_issue__`,"issuer" = `_issuer_`, "tranche_amount" = `_tranche_amount_`, "last_price" = `_last_price_`, "last_YTM" = `_last_ytm_`, "adi_rating" = `_adi_rating_`,
+                            "maturity" = `_maturity_`, "coupon_index" = `_coupon_index_`, "coupon_spread" = `_coupon_spread_`, "YTW_yesterday" = `_ytw_yesterday_`, "YTW_Change_yesterday" = `_ytw_change_yesterday_`,
+                            "YTW_change_last_7" = `_ytw_change_last_7_days_`, "YTW_change_last_30" = `_ytw_change_last_30_days_`, "YTW_change_last_90" = `_ytw_change_last_90_days_`,
+                            "YTW_change_last_365" = `_ytw_change_last_365_days_`, "YTW_change_YTD" = `_ytw_change_ytd_`, "loan_type" = `_loan_type_`, "status" = `_status_`,
+                            "lien" = `_lien_`)
+
+#remove already bankrupt names
+screen <- screen %>% filter(status != 'IN BANKRUPTCY')
+
+#Now format the data removing unused columns to get master list 
+
+formatted <- screen %>% select(issuer, issue, loan_type, lien, tranche_amount, last_price, last_YTM, adi_rating, maturity, coupon_index, coupon_spread, YTW_yesterday, YTW_Change_yesterday,
+                               YTW_change_last_7, YTW_change_last_30, YTW_change_last_90, YTW_change_last_365, YTW_change_YTD
+                               ) %>% arrange(YTW_yesterday)
+
+rm(screen)
+
+
+
+#Filter master list for change in basis points over past week being greater than 50 (half a percent)
+change_last_7 <- formatted %>% filter(YTW_change_last_7 >= .50)
+
+#Filter master list for change in basis points over past week being greater than 100 (1 percent)
+change_last_90 <- formatted %>% filter(YTW_change_last_90 >= 1)
+
+#Filter master list for change in basis points over past year being greater or equal to 200 (2%)
+change_last_year <- formatted %>% filter(YTW_change_last_365 >= 2)
+
+
+write.xlsx(formatted, file="output/weekly_screen.xlsx", sheetName="Main", row.names=FALSE)
+write.xlsx(change_last_7, file="output/weekly_screen.xlsx", sheetName="50_bps_weekly", append=TRUE, row.names=FALSE)
+write.xlsx(change_last_90, file="output/weekly_screen.xlsx", sheetName="100_bps_3_months", append=TRUE, row.names=FALSE)
+write.xlsx(change_last_year, file="output/weekly_screen.xlsx", sheetName="200_bps_yearly", append=TRUE, row.names=FALSE)
